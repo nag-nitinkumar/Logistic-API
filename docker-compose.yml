@@ -1,0 +1,79 @@
+version: '3.5'
+
+services:
+    webserver:
+        build:
+            context: ./
+            dockerfile: ./docker/webserver/Dockerfile
+        ports:
+            - 8080:80
+        volumes:
+            - "./codebase:/var/www/html"
+        links:
+            - php
+            - database
+        depends_on:
+            - composer
+        networks:
+            backend:
+                aliases:
+                    - webserver
+
+    php:
+        build:
+            context: ./
+            dockerfile: ./docker/php/DockerFile
+        container_name: logistic_php
+        expose:
+            - 9000
+        volumes:
+            - "./codebase:/var/www/html"
+        working_dir: /var/www/html
+        depends_on:
+            - database
+        dns:
+            - 8.8.8.8
+            - 4.4.4.4
+        networks:
+            backend:
+                aliases:
+                    - php
+
+    database:
+        build:
+            context: ./
+            dockerfile: ./docker/mysql/DockerFile
+        container_name: database
+        dns_search: mysql
+        ports:
+            - 3306:3306
+        environment:
+            MYSQL_ROOT_PASSWORD: "root_password"
+            MYSQL_DATABASE: "logistic_apis"
+        restart: always
+        networks:
+            backend:
+                aliases:
+                    - mysql
+
+    composer:
+        container_name: logistic_composer
+        restart: 'no'
+        image: prooph/composer:7.2
+        command: install --ignore-platform-reqs
+        working_dir: /var/www/html
+        volumes:
+            - "./codebase:/var/www/html"
+        networks:
+            backend:
+                aliases:
+                    - composer
+
+networks:
+  backend:
+    name: logistic-network
+
+volumes:
+    db-data:
+      driver: local
+
